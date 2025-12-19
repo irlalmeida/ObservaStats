@@ -936,28 +936,36 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (Storage removido - usamos Base64 em vez disso) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
 
+    <!-- LOAD FIREBASE CONFIG (SECURE) -->
+    <script src="config.js"></script>
+
     <!-- APP SCRIPT -->
     <script>
-        // ===== FIREBASE CONFIG =====
-        // SUBSTITUA COM SUAS CREDENCIAIS DO FIREBASE
-        const firebaseConfig = {
-            apiKey: "AIzaSyCGqYF9A3GtudMHqE0SoCY2zK3mqPm83BY",
-            authDomain: "observastats-75a9c.firebaseapp.com",
-            databaseURL: "https://observastats-75a9c-default-rtdb.firebaseio.com",
-            projectId: "observastats-75a9c",
-            storageBucket: "observastats-75a9c.firebasestorage.app",
-            messagingSenderId: "8287096724",
-            appId: "1:8287096724:web:768b7fa08698e8d81f8981"
-        };
+        // ===== FIREBASE CONFIG VALIDATION =====
+        // Check if firebaseConfig is available from config.js
+        if (typeof firebaseConfig === 'undefined') {
+            console.error('❌ ERROR: Firebase config not found!');
+            console.error('Please create config.js file in your project root with Firebase credentials.');
+            document.getElementById('loginScreen').innerHTML = `
+                <div class="login-card" style="border: 2px solid var(--danger);">
+                    <h1 style="color: var(--danger);">⚠️ Configuration Error</h1>
+                    <p style="color: var(--danger); margin-bottom: 20px;">Firebase credentials not found!</p>
+                    <p style="font-size: 12px; color: var(--text-light);">
+                        Please create a <strong>config.js</strong> file in your project root with your Firebase credentials.<br><br>
+                        Use <strong>config.example.js</strong> as a template.
+                    </p>
+                </div>
+            `;
+            throw new Error('Firebase config missing - see config.example.js for template');
+        }
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        // ✅ Fotos armazenadas como Base64 no Realtime Database (gratuito!)
 
         // ===== INITIAL CODES =====
         const INITIAL_CODES = {
@@ -965,7 +973,7 @@
             'TRANSFORMACAO': 'Camila',
             'DIGITAL': 'Isabela',
             'ESTADO': 'Bento',
-            'SAOPAULO': 'user'
+            'SAOPAULO': 'Lucas'
         };
 
         // ===== COLOR PALETTE =====
@@ -977,11 +985,11 @@
         // ===== SCORING SYSTEM =====
         const SCORING = {
             'Atividade Física': { multiplier: 2, unit: 'minutos' },
-            'Leitura': { multiplier: 2, unit: 'páginas' },
-            'Estudo': { multiplier: 3, unit: 'minutos' },
+            'Leitura': { multiplier: 3, unit: 'páginas' },
+            'Estudo': { multiplier: 1.5, unit: 'minutos' },
             'Sexo': { fixed: 50 },
-            'Filme': { fixed: 10 },
-            'Série': { multiplier: 2.5, unit: 'episódios' },
+            'Filme': { fixed: 30 },
+            'Série': { multiplier: 10, unit: 'episódios' },
             'Video Game': { multiplier: 0.5, unit: 'minutos' }
         };
 
@@ -1451,7 +1459,7 @@
                         b.style.borderColor = 'var(--border)';
                         b.style.background = 'white';
                     });
-                    btn.style.borderColor = var('--primary');
+                    btn.style.borderColor = 'var(--primary)';
                     btn.style.background = '#E8F5E9';
                     document.getElementById('activityRating').value = rating;
                 });
