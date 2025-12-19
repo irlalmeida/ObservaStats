@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ObservaStats - Gincana Coletiva</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #4CAF50;
+            --secondary: #2196F3;
+            --accent: #FF9800;
+            --danger: #F44336;
+            --success: #8BC34A;
+            --bg: #F5F7FA;
+            --surface: #FFFFFF;
+            --text: #212121;
+            --text-light: #757575;
+            --border: #ECEFF1;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ===== CONTAINERS & LAYOUT ===== */
+        .container {
+            max-width: 1024px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .screen {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* ===== LOGIN SCREEN ===== */
+        #loginScreen {
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        }
+
+        .login-card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 32px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+        }
+
+        .login-card h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: var(--primary);
+        }
+
+        .login-card p {
+            color: var(--text-light);
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            transition: border-color 0.3s;
+        }
+
+        .login-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .login-btn:hover {
+            background: #45a049;
+        }
+
+        .login-error {
+            color: var(--danger);
+            font-size: 14px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: var(--surface);
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .logout-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #d32f2f;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            pb: 100px;
+        }
+
+        /* ===== DASHBOARD SCREEN ===== */
+        .score-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+        }
+
+        .score-value {
+            font-size: 48px;
+            font-weight: 700;
+            margin: 12px 0;
+        }
+
+        .score-rank {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 16px;
+        }
+
+        .quick-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-box {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #1976D2;
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            background: #FB8C00;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 12px;
+            min-height: 36px;
+        }
+
+        /* ===== TABS ===== */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 12px 16px;
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ===== RANKING ===== */
+        .ranking-list {
+            list-style: none;
+        }
+
+        .ranking-item {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-left: 4px solid var(--primary);
+            box-shadow: var(--shadow);
+        }
+
+        .ranking-position {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .ranking-info {
+            flex: 1;
+            margin: 0 16px;
+        }
+
+        .ranking-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .ranking-detail {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .ranking-score {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            text-align: right;
+        }
+
+        .ranking-medal {
+            font-size: 20px;
+        }
+
+        /* ===== FEED ===== */
+        .feed-item {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--secondary);
+            box-shadow: var(--shadow);
+        }
+
+        .feed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .feed-user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .feed-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .feed-category {
+            display: inline-block;
+            background: var(--secondary);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .feed-timestamp {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .feed-content {
+            margin: 12px 0;
+        }
+
+        .feed-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .feed-description {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-bottom: 8px;
+        }
+
+        .feed-image {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin: 12px 0;
+        }
+
+        .feed-points {
+            background: var(--success);
+            color: white;
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .feed-badge {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 4px 8px;
+            background: #E8F5E9;
+            color: var(--primary);
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        /* ===== MODAL ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            width: 100%;
+            max-width: 600px;
+            border-radius: 16px 16px 0 0;
+            padding: 24px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+
+        /* ===== FORMS ===== */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-label .required {
+            color: var(--danger);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .form-actions .btn {
+            flex: 1;
+        }
+
+        /* ===== PHOTO UPLOAD ===== */
+        .photo-upload {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .photo-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px dashed var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo-btn:hover {
+            border-color: var(--primary);
+            background: #F0F8F5;
+        }
+
+        .photo-preview {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-top: 12px;
+        }
+
+        /* ===== BADGES & NOTIFICATIONS ===== */
+        .badge {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .notification {
+            background: #FFF3E0;
+            border-left: 4px solid var(--accent);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .notification-icon {
+            font-size: 20px;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .notification-text {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        /* ===== VOTING SECTION ===== */
+        .voting-card {
+            background: #F3E5F5;
+            border-left: 4px solid #9C27B0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .voting-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #7B1FA2;
+        }
+
+        .voting-voters {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 12px;
+        }
+
+        .voting-bar {
+            background: var(--border);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .voting-progress {
+            background: #9C27B0;
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        .voting-timeout {
+            font-size: 12px;
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (min-width: 768px) {
+            .container {
+                padding: 24px;
+            }
+
+            .quick-stats {
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+            }
+
+            .modal-content {
+                border-radius: 16px;
+                max-height: 80vh;
+                margin: 20px;
+            }
+
+            .login-card {
+                max-width: 500px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .quick-stats {
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .ranking-list {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+        }
+
+        /* ===== UTILITIES ===== */
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-20 {
+            margin-top: 20px;
+        }
+
+        .mb-20 {
+            margin-bottom: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .loader {
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="screen active">
+        <div class="login-card">
+            <h1>ObservaStats</h1>
+            <p>Digite seu código de acesso</p>
+            <input 
+                type="text" 
+                id="codeInput" 
+                class="login-input" 
+                placeholder="Código"
+                autocomplete="off"
+            >
+            <button class="login-btn" id="loginBtn">Acessar</button>
+            <div class="login-error" id="loginError"></div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="appScreen" class="screen">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-title">
+                <span>📊 ObservaStats</span>
+                <div class="user-badge" id="userBadge"></div>
+                <span id="userName"></span>
+            </div>
+            <button class="logout-btn" id="logoutBtn">Sair</button>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content container">
+            <!-- DASHBOARD TAB -->
+            <div id="dashboardTab" class="tab-content active">
+                <!-- Score Card -->
+                <div class="score-card">
+                    <div>Seu Score</div>
+                    <div class="score-value" id="userScore">0</div>
+                    <div class="score-rank" id="userRank">Posição: --</div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="quick-stats">
+                    <div class="stat-box">
+                        <div class="stat-label">Atividades</div>
+                        <div class="stat-value" id="totalActivities">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Categoria Top</div>
+                        <div class="stat-value" id="topCategory">--</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Ciclo</div>
+                        <div class="stat-value" id="cycleStatus">Ativo</div>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <button class="btn btn-primary" id="addActivityBtn">+ Registrar Atividade</button>
+
+                <!-- Ciclo Info -->
+                <div id="cycleInfo"></div>
+            </div>
+
+            <!-- RANKINGS TAB -->
+            <div id="rankingsTab" class="tab-content">
+                <div class="tabs" id="categoryTabs"></div>
+                <div id="categoryRankings"></div>
+            </div>
+
+            <!-- HISTÓRICO TAB -->
+            <div id="historicoTab" class="tab-content">
+                <div class="tabs" id="historicoTabs">
+                    <button class="tab-btn active" data-tab="feed">Feed</button>
+                    <button class="tab-btn" data-tab="summary">Resumo</button>
+                </div>
+                <div id="feedContent" class="tab-content active"></div>
+                <div id="summaryContent" class="tab-content"></div>
+            </div>
+        </div>
+
+        <!-- BOTTOM NAVIGATION -->
+        <div style="
+            display: flex;
+            gap: 0;
+            position: sticky;
+            bottom: 0;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+        ">
+            <button class="tab-btn active" data-section="dashboard" style="flex: 1; border-radius: 0; border-bottom: none;">📊 Dashboard</button>
+            <button class="tab-btn" data-section="rankings" style="flex: 1; border-radius: 0; border-bottom: none;">🏆 Rankings</button>
+            <button class="tab-btn" data-section="historico" style="flex: 1; border-radius: 0; border-bottom: none;">📝 Histórico</button>
+        </div>
+    </div>
+
+    <!-- ACTIVITY REGISTRATION MODAL -->
+    <div id="activityModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Registrar Atividade</h2>
+                <button class="modal-close" id="closeModalBtn">✕</button>
+            </div>
+
+            <form id="activityForm">
+                <!-- Title -->
+                <div class="form-group">
+                    <label class="form-label">
+                        Título <span class="required">*</span>
+                    </label>
+                    <input type="text" id="activityTitle" class="form-input" placeholder="Ex: Corrida matinal" required>
+                </div>
+
+                <!-- Category -->
+                <div class="form-group">
+                    <label class="form-label">
+                        Categoria <span class="required">*</span>
+                    </label>
+                    <select id="activityCategory" class="form-select" required>
+                        <option value="">Selecione uma categoria</option>
+                        <option value="Atividade Física">🏃 Atividade Física</option>
+                        <option value="Leitura">📚 Leitura</option>
+                        <option value="Estudo">🎓 Estudo</option>
+                        <option value="Sexo">❤️ Sexo</option>
+                        <option value="Filme">🎬 Filme</option>
+                        <option value="Série">📺 Série</option>
+                        <option value="Video Game">🎮 Video Game</option>
+                    </select>
+                </div>
+
+                <!-- Dynamic Fields -->
+                <div id="dynamicFields"></div>
+
+                <!-- Photo Upload -->
+                <div class="form-group">
+                    <label class="form-label">Comprovante (Opcional)</label>
+                    <div class="photo-upload">
+                        <button type="button" class="photo-btn" id="urlPhotoBtn">🔗 URL</button>
+                        <button type="button" class="photo-btn" id="uploadPhotoBtn">📤 Upload</button>
+                        <button type="button" class="photo-btn" id="cameraPhotoBtn">📷 Câmera</button>
+                    </div>
+                    <input type="file" id="photoFile" accept="image/*" style="display: none;">
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+                    <input type="url" id="photoUrl" class="form-input" placeholder="Cole a URL da imagem" style="display: none;">
+                    <img id="photoPreview" class="photo-preview" style="display: none;">
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancelActivityBtn">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (Storage removido - usamos Base64 em vez disso) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
+
+    <!-- APP SCRIPT -->
+    <script>
+        // ===== FIREBASE CONFIG =====
+        // SUBSTITUA COM SUAS CREDENCIAIS DO FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyCGqYF9A3GtudMHqE0SoCY2zK3mqPm83BY",
+            authDomain: "observastats-75a9c.firebaseapp.com",
+            databaseURL: "https://observastats-75a9c-default-rtdb.firebaseio.com",
+            projectId: "observastats-75a9c",
+            storageBucket: "observastats-75a9c.firebasestorage.app",
+            messagingSenderId: "8287096724",
+            appId: "1:8287096724:web:768b7fa08698e8d81f8981"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        // ✅ Fotos armazenadas como Base64 no Realtime Database (gratuito!)
+
+        // ===== INITIAL CODES =====
+        const INITIAL_CODES = {
+            'OBSERVATORIO': 'Beatriz',
+            'TRANSFORMACAO': 'Camila',
+            'DIGITAL': 'Isabela',
+            'ESTADO': 'Bento',
+            'SAOPAULO': 'user'
+        };
+
+        // ===== COLOR PALETTE =====
+        const COLORS = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+            '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'
+        ];
+
+        // ===== SCORING SYSTEM =====
+        const SCORING = {
+            'Atividade Física': { multiplier: 2, unit: 'minutos' },
+            'Leitura': { multiplier: 2, unit: 'páginas' },
+            'Estudo': { multiplier: 3, unit: 'minutos' },
+            'Sexo': { fixed: 50 },
+            'Filme': { fixed: 10 },
+            'Série': { multiplier: 2.5, unit: 'episódios' },
+            'Video Game': { multiplier: 0.5, unit: 'minutos' }
+        };
+
+        // ===== STATE =====
+        let currentUser = null;
+        let gincanaId = null;
+        let userData = {};
+        let activitiesData = {};
+        let cycleData = null;
+
+        // ===== LOGIN LOGIC =====
+        document.getElementById('loginBtn').addEventListener('click', handleLogin);
+        document.getElementById('codeInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+
+        async function handleLogin() {
+            const code = document.getElementById('codeInput').value.toUpperCase().trim();
+            const errorEl = document.getElementById('loginError');
+
+            if (!code) {
+                errorEl.textContent = 'Digite um código válido';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (!INITIAL_CODES[code]) {
+                errorEl.textContent = 'Código inválido';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            errorEl.style.display = 'none';
+
+            // Get or create gincana
+            try {
+                const snapshot = await db.ref('gincanas').limitToFirst(1).once('value');
+                if (snapshot.exists()) {
+                    gincanaId = Object.keys(snapshot.val())[0];
+                } else {
+                    gincanaId = db.ref('gincanas').push().key;
+                    await db.ref(`gincanas/${gincanaId}`).update({
+                        dataCriacao: new Date().toISOString(),
+                        status: 'ativo',
+                        cicloAtual: 1
+                    });
+                }
+
+                currentUser = code;
+                const userName = INITIAL_CODES[code];
+
+                // Initialize user if not exists
+                await db.ref(`gincanas/${gincanaId}/usuarios/${code}`).update({
+                    codigo: code,
+                    nome: userName,
+                    corPerfil: COLORS[Object.keys(INITIAL_CODES).indexOf(code) % COLORS.length]
+                });
+
+                showAppScreen();
+                setupRealtime();
+            } catch (error) {
+                console.error('Login error:', error);
+                errorEl.textContent = 'Erro ao conectar. Tente novamente.';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        // ===== SHOW APP SCREEN =====
+        function showAppScreen() {
+            document.getElementById('loginScreen').classList.remove('active');
+            document.getElementById('appScreen').classList.add('active');
+            updateHeader();
+        }
+
+        // ===== LOGOUT =====
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            currentUser = null;
+            gincanaId = null;
+            document.getElementById('loginScreen').classList.add('active');
+            document.getElementById('appScreen').classList.remove('active');
+            document.getElementById('codeInput').value = '';
+        });
+
+        // ===== REALTIME LISTENERS =====
+        function setupRealtime() {
+            // Listen to users
+            db.ref(`gincanas/${gincanaId}/usuarios`).on('value', (snapshot) => {
+                userData = snapshot.val() || {};
+                updateUI();
+            });
+
+            // Listen to activities
+            db.ref(`gincanas/${gincanaId}/registros`).on('value', (snapshot) => {
+                activitiesData = snapshot.val() || {};
+                updateUI();
+            });
+
+            // Listen to cycle
+            db.ref(`gincanas/${gincanaId}`).on('value', (snapshot) => {
+                cycleData = snapshot.val();
+                updateUI();
+            });
+        }
+
+        // ===== UPDATE HEADER =====
+        function updateHeader() {
+            const user = userData[currentUser];
+            if (user) {
+                const firstLetter = user.nome.charAt(0).toUpperCase();
+                document.getElementById('userBadge').textContent = firstLetter;
+                document.getElementById('userBadge').style.backgroundColor = user.corPerfil;
+                document.getElementById('userName').textContent = user.nome;
+            }
+        }
+
+        // ===== CALCULATE SCORE =====
+        function calculateScore(activity) {
+            const config = SCORING[activity.categoria];
+            if (!config) return 0;
+
+            if (config.fixed) {
+                return config.fixed;
+            } else if (config.multiplier) {
+                return Math.round(activity.valor * config.multiplier);
+            }
+            return 0;
+        }
+
+        // ===== GET USER STATS =====
+        function getUserStats(userId) {
+            let totalScore = 0;
+            let totalActivities = 0;
+            const categoryScores = {};
+
+            Object.values(activitiesData).forEach(activity => {
+                if (activity.usuarioId === userId) {
+                    const score = calculateScore(activity);
+                    totalScore += score;
+                    totalActivities += 1;
+
+                    if (!categoryScores[activity.categoria]) {
+                        categoryScores[activity.categoria] = 0;
+                    }
+                    categoryScores[activity.categoria] += 1;
+                }
+            });
+
+            return { totalScore, totalActivities, categoryScores };
+        }
+
+        // ===== UPDATE UI =====
+        function updateUI() {
+            updateHeader();
+            updateDashboard();
+            updateRankings();
+            updateHistorico();
+        }
+
+        function updateDashboard() {
+            const stats = getUserStats(currentUser);
+            document.getElementById('userScore').textContent = stats.totalScore;
+            document.getElementById('totalActivities').textContent = stats.totalActivities;
+
+            // Find top category
+            const topCat = Object.entries(stats.categoryScores)
+                .sort(([,a], [,b]) => b - a)[0];
+            document.getElementById('topCategory').textContent = topCat ? topCat[0].substring(0, 3) : '--';
+
+            // Ranking position
+            const rankings = getRankings();
+            const position = rankings.findIndex(r => r.codigo === currentUser) + 1;
+            document.getElementById('userRank').textContent = `Posição: ${position}/${Object.keys(userData).length}`;
+        }
+
+        function getRankings() {
+            const rankings = Object.entries(userData).map(([codigo, user]) => {
+                const stats = getUserStats(codigo);
+                return {
+                    codigo,
+                    nome: user.nome,
+                    corPerfil: user.corPerfil,
+                    score: stats.totalScore,
+                    activities: stats.totalActivities
+                };
+            }).sort((a, b) => b.score - a.score);
+
+            return rankings;
+        }
+
+        function updateRankings() {
+            const categoryTabs = document.getElementById('categoryTabs');
+            const categoryRankings = document.getElementById('categoryRankings');
+            categoryTabs.innerHTML = '';
+            categoryRankings.innerHTML = '';
+
+            const categories = ['Geral', 'Atividade Física', 'Leitura', 'Estudo', 'Sexo', 'Filme', 'Série', 'Video Game'];
+
+            categories.forEach((cat, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'tab-btn' + (idx === 0 ? ' active' : '');
+                btn.textContent = cat === 'Geral' ? '🌟 Geral' : cat;
+                btn.onclick = () => showCategoryRanking(cat);
+                categoryTabs.appendChild(btn);
+            });
+
+            showCategoryRanking('Geral');
+        }
+
+        function showCategoryRanking(category) {
+            const categoryRankings = document.getElementById('categoryRankings');
+            categoryRankings.innerHTML = '';
+
+            let rankings;
+            if (category === 'Geral') {
+                rankings = getRankings();
+            } else {
+                rankings = Object.entries(userData).map(([codigo, user]) => {
+                    let categoryScore = 0;
+                    Object.values(activitiesData).forEach(activity => {
+                        if (activity.usuarioId === codigo && activity.categoria === category) {
+                            categoryScore += calculateScore(activity);
+                        }
+                    });
+                    return {
+                        codigo,
+                        nome: user.nome,
+                        corPerfil: user.corPerfil,
+                        score: categoryScore
+                    };
+                }).filter(r => r.score > 0).sort((a, b) => b.score - a.score);
+            }
+
+            if (rankings.length === 0) {
+                categoryRankings.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>Nenhum registro ainda</p></div>';
+                return;
+            }
+
+            const html = rankings.map((r, idx) => {
+                const medals = ['🥇', '🥈', '🥉'];
+                const medal = medals[idx] || '•';
+                return `
+                    <div class="ranking-item">
+                        <div class="ranking-medal">${medal}</div>
+                        <div class="ranking-position">${idx + 1}</div>
+                        <div class="ranking-info">
+                            <div class="ranking-name">${r.nome}</div>
+                            <div class="ranking-detail" style="background: ${r.corPerfil}; width: 20px; height: 6px; border-radius: 3px;"></div>
+                        </div>
+                        <div class="ranking-score">${r.score}</div>
+                    </div>
+                `;
+            }).join('');
+
+            categoryRankings.innerHTML = html;
+        }
+
+        function updateHistorico() {
+            updateFeed();
+            updateSummary();
+        }
+
+        function updateFeed() {
+            const feedContent = document.getElementById('feedContent');
+            const activities = Object.entries(activitiesData)
+                .sort(([,a], [,b]) => new Date(b.timestamp) - new Date(a.timestamp))
+                .slice(0, 50);
+
+            if (activities.length === 0) {
+                feedContent.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎯</div><p>Nenhuma atividade registrada</p></div>';
+                return;
+            }
+
+            const html = activities.map(([id, activity]) => {
+                const user = userData[activity.usuarioId];
+                const points = calculateScore(activity);
+                const time = new Date(activity.timestamp).toLocaleDateString('pt-BR', {
+                    day: 'short',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                let valueText = '';
+                const config = SCORING[activity.categoria];
+                if (config && config.unit) {
+                    valueText = `${activity.valor} ${config.unit}`;
+                }
+
+                return `
+                    <div class="feed-item">
+                        <div class="feed-header">
+                            <div class="feed-user">
+                                <div class="feed-avatar" style="background-color: ${user?.corPerfil || '#ccc'}">${user?.nome.charAt(0) || '?'}</div>
+                                <div>
+                                    <div style="font-weight: 600;">${user?.nome || 'Desconhecido'}</div>
+                                    <span class="feed-category">${activity.categoria}</span>
+                                    <div class="feed-timestamp">${time}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="feed-content">
+                            <div class="feed-title">${activity.titulo}</div>
+                            ${activity.descricao ? `<div class="feed-description">${activity.descricao}</div>` : ''}
+                            ${valueText ? `<div style="font-size: 12px; color: var(--text-light); margin: 8px 0;">${valueText}</div>` : ''}
+                            ${activity.fotoUrl ? `<img src="${activity.fotoUrl}" alt="Comprovante" class="feed-image" onerror="this.style.display='none'">` : ''}
+                        </div>
+                        <div>
+                            <span class="feed-points">+${points} pts</span>
+                            ${activity.avaliacao ? `<span class="feed-badge">${'⭐'.repeat(activity.avaliacao)}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            feedContent.innerHTML = html;
+        }
+
+        function updateSummary() {
+            const summaryContent = document.getElementById('summaryContent');
+            const summary = {};
+
+            Object.values(userData).forEach(user => {
+                summary[user.nome] = {};
+                Object.keys(SCORING).forEach(cat => {
+                    summary[user.nome][cat] = 0;
+                });
+            });
+
+            Object.values(activitiesData).forEach(activity => {
+                const user = userData[activity.usuarioId];
+                if (user && summary[user.nome]) {
+                    summary[user.nome][activity.categoria] += 1;
+                }
+            });
+
+            const html = Object.entries(summary).map(([nome, categories]) => {
+                const total = Object.values(categories).reduce((a, b) => a + b, 0);
+                const entries = Object.entries(categories)
+                    .filter(([, v]) => v > 0)
+                    .map(([cat, count]) => `<div style="display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0;">
+                        <span>${cat}</span>
+                        <strong>${count}</strong>
+                    </div>`)
+                    .join('');
+
+                return `
+                    <div class="feed-item">
+                        <div style="font-weight: 600; margin-bottom: 12px;">${nome}</div>
+                        <div style="font-size: 12px; color: var(--text-light); margin-bottom: 12px;">Total: ${total} atividades</div>
+                        ${entries || '<div style="color: var(--text-light); font-size: 12px;">Sem atividades</div>'}
+                    </div>
+                `;
+            }).join('');
+
+            summaryContent.innerHTML = html || '<div class="empty-state">Nenhum dado</div>';
+        }
+
+        // ===== SECTION NAVIGATION =====
+        document.querySelectorAll('[data-section]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('[data-section]').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+
+                const section = e.target.dataset.section;
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                document.getElementById(section + 'Tab').classList.add('active');
+            });
+        });
+
+        // ===== ACTIVITY MODAL =====
+        document.getElementById('addActivityBtn').addEventListener('click', () => {
+            document.getElementById('activityModal').classList.add('active');
+        });
+
+        document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+        document.getElementById('cancelActivityBtn').addEventListener('click', closeModal);
+
+        function closeModal() {
+            document.getElementById('activityModal').classList.remove('active');
+            document.getElementById('activityForm').reset();
+            document.getElementById('photoPreview').style.display = 'none';
+            document.getElementById('photoUrl').style.display = 'none';
+        }
+
+        // ===== DYNAMIC FORM FIELDS =====
+        document.getElementById('activityCategory').addEventListener('change', updateDynamicFields);
+
+        function updateDynamicFields() {
+            const category = document.getElementById('activityCategory').value;
+            const container = document.getElementById('dynamicFields');
+            container.innerHTML = '';
+
+            if (!category) return;
+
+            const config = SCORING[category];
+
+            if (category === 'Sexo') {
+                // No extra fields needed
+            } else if (category === 'Atividade Física' || category === 'Estudo' || category === 'Video Game') {
+                container.innerHTML += `
+                    <div class="form-group">
+                        <label class="form-label">Minutos <span class="required">*</span></label>
+                        <input type="number" class="form-input" id="activityValue" placeholder="Ex: 30" required>
+                    </div>
+                `;
+            } else if (category === 'Leitura') {
+                container.innerHTML += `
+                    <div class="form-group">
+                        <label class="form-label">Páginas <span class="required">*</span></label>
+                        <input type="number" class="form-input" id="activityValue" placeholder="Ex: 50" required>
+                    </div>
+                `;
+            } else if (category === 'Série') {
+                container.innerHTML += `
+                    <div class="form-group">
+                        <label class="form-label">Nº de Episódios <span class="required">*</span></label>
+                        <input type="number" class="form-input" id="activityValue" placeholder="Ex: 3" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Avaliação</label>
+                        <div style="display: flex; gap: 8px;">
+                            ${[1,2,3,4,5].map(n => `
+                                <button type="button" class="rating-btn" data-rating="${n}" style="
+                                    flex: 1;
+                                    padding: 8px;
+                                    border: 2px solid var(--border);
+                                    background: white;
+                                    border-radius: 6px;
+                                    cursor: pointer;
+                                    font-size: 20px;
+                                    transition: all 0.2s;
+                                ">${'⭐'.repeat(n)}</button>
+                            `).join('')}
+                        </div>
+                        <input type="hidden" id="activityRating" value="0">
+                    </div>
+                `;
+            } else if (category === 'Filme') {
+                container.innerHTML += `
+                    <div class="form-group">
+                        <label class="form-label">Avaliação</label>
+                        <div style="display: flex; gap: 8px;">
+                            ${[1,2,3,4,5].map(n => `
+                                <button type="button" class="rating-btn" data-rating="${n}" style="
+                                    flex: 1;
+                                    padding: 8px;
+                                    border: 2px solid var(--border);
+                                    background: white;
+                                    border-radius: 6px;
+                                    cursor: pointer;
+                                    font-size: 20px;
+                                    transition: all 0.2s;
+                                ">${'⭐'.repeat(n)}</button>
+                            `).join('')}
+                        </div>
+                        <input type="hidden" id="activityRating" value="0">
+                    </div>
+                `;
+            }
+
+            // Setup rating buttons
+            document.querySelectorAll('.rating-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const rating = btn.dataset.rating;
+                    document.querySelectorAll('.rating-btn').forEach(b => {
+                        b.style.borderColor = 'var(--border)';
+                        b.style.background = 'white';
+                    });
+                    btn.style.borderColor = var('--primary');
+                    btn.style.background = '#E8F5E9';
+                    document.getElementById('activityRating').value = rating;
+                });
+            });
+
+            // Description field for some categories
+            if (['Atividade Física', 'Leitura', 'Estudo', 'Video Game'].includes(category)) {
+                container.innerHTML += `
+                    <div class="form-group">
+                        <label class="form-label">Descrição</label>
+                        <textarea id="activityDescription" class="form-textarea" placeholder="Adicione detalhes (opcional)"></textarea>
+                    </div>
+                `;
+            } else if (category === 'Filme') {
+                container.innerHTML += `
+                    <div class="form-group">
+                        <label class="form-label">Descrição</label>
+                        <textarea id="activityDescription" class="form-textarea" placeholder="Nome do filme e comentários"></textarea>
+                    </div>
+                `;
+            } else if (category === 'Série') {
+                container.innerHTML += `
+                    <div class="form-group">
+                        <label class="form-label">Descrição</label>
+                        <textarea id="activityDescription" class="form-textarea" placeholder="Nome da série e episódios assistidos"></textarea>
+                    </div>
+                `;
+            }
+        }
+
+        // ===== PHOTO HANDLING =====
+        document.getElementById('urlPhotoBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('photoUrl').style.display = 
+                document.getElementById('photoUrl').style.display === 'none' ? 'block' : 'none';
+        });
+
+        document.getElementById('uploadPhotoBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('photoFile').click();
+        });
+
+        document.getElementById('cameraPhotoBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('cameraInput').click();
+        });
+
+        document.getElementById('photoFile').addEventListener('change', handlePhotoUpload);
+        document.getElementById('cameraInput').addEventListener('change', handlePhotoUpload);
+        document.getElementById('photoUrl').addEventListener('input', handlePhotoUrl);
+
+        function handlePhotoUrl() {
+            const url = document.getElementById('photoUrl').value;
+            if (url) {
+                document.getElementById('photoPreview').src = url;
+                document.getElementById('photoPreview').style.display = 'block';
+            }
+        }
+
+        function handlePhotoUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Redimensiona se muito grande (máx 2MB para otimizar armazenamento)
+                if (file.size > 2000000) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    img.onload = () => {
+                        canvas.width = img.width * 0.7;
+                        canvas.height = img.height * 0.7;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const compressedData = canvas.toDataURL('image/jpeg', 0.7);
+                        document.getElementById('photoPreview').src = compressedData;
+                        document.getElementById('photoPreview').style.display = 'block';
+                        document.getElementById('photoUrl').value = compressedData;
+                    };
+                    img.src = URL.createObjectURL(file);
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        document.getElementById('photoPreview').src = event.target.result;
+                        document.getElementById('photoPreview').style.display = 'block';
+                        document.getElementById('photoUrl').value = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+
+        // ===== FORM SUBMISSION =====
+        document.getElementById('activityForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const title = document.getElementById('activityTitle').value;
+            const category = document.getElementById('activityCategory').value;
+            const valor = document.getElementById('activityValue')?.value || 1;
+            const description = document.getElementById('activityDescription')?.value || '';
+            const rating = document.getElementById('activityRating')?.value || 0;
+            const photoUrl = document.getElementById('photoPreview').src || '';
+
+            if (!title || !category) {
+                alert('Preencha os campos obrigatórios');
+                return;
+            }
+
+            const activityId = db.ref(`gincanas/${gincanaId}/registros`).push().key;
+            const activity = {
+                id: activityId,
+                usuarioId: currentUser,
+                categoria: category,
+                titulo: title,
+                descricao: description,
+                valor: parseInt(valor),
+                avaliacao: rating ? parseInt(rating) : 0,
+                fotoUrl: photoUrl,
+                timestamp: new Date().toISOString(),
+                ciclo: cycleData?.cicloAtual || 1
+            };
+
+            try {
+                await db.ref(`gincanas/${gincanaId}/registros/${activityId}`).set(activity);
+                closeModal();
+                alert('Atividade registrada com sucesso! 🎉');
+            } catch (error) {
+                console.error('Error registering activity:', error);
+                alert('Erro ao registrar atividade. Tente novamente.');
+            }
+        });
+
+        // ===== INITIALIZE =====
+        document.getElementById('codeInput').focus();
+    </script>
+</body>
+</html>
