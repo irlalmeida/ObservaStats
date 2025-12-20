@@ -1,4 +1,19 @@
+# Arquivos sensíveis
+codes.js
 config.js
 .env
 .env.local
-firebase-config.js
+firebase-key.json
+
+# Node
+node_modules/
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
