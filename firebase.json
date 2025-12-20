@@ -4,18 +4,7 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**",
-      ".gitignore",
-      "setup-secrets.sh",
-      "config.example.js",
-      "codes.example.js",
-      "*.backup"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/observastats.html"
-      }
+      "**/node_modules/**"
     ]
   }
 }
