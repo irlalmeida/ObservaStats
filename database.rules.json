@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "gincanas": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}

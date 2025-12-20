@@ -838,6 +838,7 @@
 
                 <!-- Action Button -->
                 <button class="btn btn-primary" id="addActivityBtn">+ Registrar Atividade</button>
+<button class="btn btn-accent" id="suggestEndBtn">🏁 Sugerir Fim do Ciclo</button>
 
                 <!-- Ciclo Info -->
                 <div id="cycleInfo"></div>
@@ -1150,11 +1151,14 @@
 
         // ===== UPDATE UI =====
         function updateUI() {
-            updateHeader();
-            updateDashboard();
-            updateRankings();
-            updateHistorico();
-        }
+                updateHeader();
+                updateDashboard();
+                updateRankings();
+                updateHistorico();
+                renderActiveVoting();
+                checkVotingCompletion();
+                addExportButton();
+            }
 
         function updateDashboard() {
             const stats = getUserStats(currentUser);
@@ -1207,6 +1211,13 @@
         }
 
         function showCategoryRanking(category) {
+  // Atualizar highlight dos botões
+  document.querySelectorAll("#categoryTabs .tab-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll("#categoryTabs .tab-btn").forEach(b => {
+    if ((category === "Geral" && b.textContent === "Geral") || b.textContent === category) {
+      b.classList.add("active");
+    }
+  });
             const categoryRankings = document.getElementById('categoryRankings');
             categoryRankings.innerHTML = '';
 
@@ -1259,9 +1270,13 @@
             updateSummary();
         }
 
-        function updateFeed() {
-            const feedContent = document.getElementById('feedContent');
-            const activities = Object.entries(activitiesData)
+function updateFeed() {
+  const feedContent = document.getElementById("feedContent");
+  if (!activitiesData) {
+    feedContent.innerHTML = "<div class=\"empty-state\"><div class=\"empty-state-icon\">📭</div><p>Nenhuma atividade registrada</p></div>";
+    return;
+  }
+  const activities = Object.entries(activitiesData)
                 .sort(([,a], [,b]) => new Date(b.timestamp) - new Date(a.timestamp))
                 .slice(0, 50);
 
@@ -1597,8 +1612,409 @@
             }
         });
 
+// ========================================
+            // TODAS AS FASES: VOTAÇÃO, CSV, EDITAR NOME
+            // ========================================
+
+            // SUGERIR FIM DO CICLO
+            document.getElementById('suggestEndBtn').addEventListener('click', async () => {
+                if (cycleData?.metadata?.statusCicloAnterior === 'encerrado') {
+                    alert('O ciclo já foi encerrado. Inicie um novo ciclo para continuar.');
+                    return;
+                }
+                const votacaoAtiva = cycleData?.metadata?.votacaoAtiva;
+                if (votacaoAtiva && Object.values(votacaoAtiva).some(v => v.status === 'aberta')) {
+                    alert('Já existe uma votação ativa para encerramento.');
+                    return;
+                }
+                if (!confirm('Deseja sugerir o fim deste ciclo? Todos os usuários precisarão votar.')) return;
+                try {
+                    const voteId = db.ref(`gincanas/${gincanaId}/metadata/votacaoAtiva`).push().key;
+                    await db.ref(`gincanas/${gincanaId}/metadata/votacaoAtiva/${voteId}`).set({
+                        tipo: 'fimciclo',
+                        proponente: currentUser,
+                        timestampInicio: new Date().toISOString(),
+                        votos: { [currentUser]: true },
+                        status: 'aberta'
+                    });
+                    alert('Votação iniciada! Aguarde os outros participantes.');
+                } catch (error) {
+                    console.error('Error creating vote:', error);
+                    alert('Erro ao criar votação.');
+                }
+            });
+
+            function renderActiveVoting() {
+                const votingContainer = document.getElementById('cycleInfo');
+                if (cycleData?.metadata?.statusCicloAnterior === 'encerrado') {
+                    const cicloAnterior = (cycleData?.metadata?.cicloAtual || 1) - 1;
+                    const dataEncerramento = cycleData?.metadata?.dataEncerramentoCicloAnterior 
+                        ? new Date(cycleData.metadata.dataEncerramentoCicloAnterior).toLocaleDateString('pt-BR')
+                        : 'N/A';
+                    votingContainer.innerHTML = `
+                        <div class="notification" style="background: #4CAF50; color: white; border-left: 4px solid #2E7D32; margin-bottom: 16px;">
+                            <div class="notification-icon">🏁</div>
+                            <div class="notification-content">
+                                <div class="notification-title">Ciclo ${cicloAnterior} Encerrado</div>
+                                <div class="notification-text">Encerrado em ${dataEncerramento}. Rankings congelados.<br><strong>Motivo:</strong> ${cycleData.metadata.motivoEncerramento || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-accent" onclick="document.getElementById('newCycleModal').classList.add('active')" style="width: 100%; margin-bottom: 12px;">🚀 Iniciar Novo Ciclo</button>
+                    `;
+                    document.getElementById('suggestEndBtn').disabled = true;
+                    document.getElementById('suggestEndBtn').style.opacity = '0.5';
+                    document.getElementById('suggestEndBtn').style.cursor = 'not-allowed';
+                    document.getElementById('addActivityBtn').disabled = true;
+                    document.getElementById('addActivityBtn').style.opacity = '0.5';
+                    document.getElementById('addActivityBtn').style.cursor = 'not-allowed';
+                    document.getElementById('addActivityBtn').textContent = '🔒 Ciclo Encerrado';
+                    return;
+                }
+                document.getElementById('suggestEndBtn').disabled = false;
+                document.getElementById('suggestEndBtn').style.opacity = '1';
+                document.getElementById('suggestEndBtn').style.cursor = 'pointer';
+                document.getElementById('addActivityBtn').disabled = false;
+                document.getElementById('addActivityBtn').style.opacity = '1';
+                document.getElementById('addActivityBtn').style.cursor = 'pointer';
+                document.getElementById('addActivityBtn').textContent = '➕ Registrar Atividade';
+                const votacaoAtiva = cycleData?.metadata?.votacaoAtiva;
+                if (!votacaoAtiva) {
+                    votingContainer.innerHTML = '';
+                    return;
+                }
+                const votacao = Object.entries(votacaoAtiva).find(([id, vote]) => vote.status === 'aberta');
+                if (!votacao) {
+                    votingContainer.innerHTML = '';
+                    return;
+                }
+                const [voteId, vote] = votacao;
+                const totalUsers = Object.keys(userData || {}).length;
+                const votos = vote.votos || {};
+                const votosPositivos = Object.values(votos).filter(v => v === true).length;
+                const votosNegativos = Object.values(votos).filter(v => v === false).length;
+                const progresso = (votosPositivos / totalUsers) * 100;
+                const tempoDecorrido = new Date() - new Date(vote.timestampInicio);
+                const horas = Math.floor(tempoDecorrido / (1000 * 60 * 60));
+                const minutos = Math.floor((tempoDecorrido % (1000 * 60 * 60)) / (1000 * 60));
+                const progressoTempo = Math.min(Math.round((horas / 72) * 100), 100);
+                const jaVotou = currentUser in votos;
+                votingContainer.innerHTML = `
+                    <div class="voting-card">
+                        <div class="voting-title">🗳️ Votação Ativa - Encerramento do Ciclo</div>
+                        <div class="voting-voters">✅ ${votosPositivos} concordam | ❌ ${votosNegativos} discordam | ⏳ ${totalUsers - votosPositivos - votosNegativos} aguardando</div>
+                        <div style="margin: 12px 0;"><div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px;">Progresso: ${votosPositivos}/${totalUsers} usuários</div><div class="voting-bar"><div class="voting-progress" style="width: ${progresso}%"></div></div></div>
+                        <div class="voting-timeout">⏱️ Tempo: ${horas}h ${minutos}m / 72h <span style="color: ${progressoTempo > 90 ? 'var(--danger)' : 'var(--text-light)'}">( ${progressoTempo}% do prazo)</span></div>
+                        ${!jaVotou ? `<div style="display: flex; gap: 8px; margin-top: 12px;"><button class="btn btn-primary vote-btn" data-vote-id="${voteId}" data-vote="true" style="flex: 1; background: var(--success);">✅ Concordo</button><button class="btn btn-secondary vote-btn" data-vote-id="${voteId}" data-vote="false" style="flex: 1; background: var(--danger);">❌ Discordo</button></div>` : `<div style="padding: 12px; background: var(--bg); border-radius: 6px; margin-top: 12px; text-align: center; color: var(--text-light); font-size: 12px;">✓ Você votou: ${votos[currentUser] ? '✅ Concordo' : '❌ Discordo'}</div>`}
+                    </div>
+                `;
+                setupVotingUI();
+            }
+
+            function setupVotingUI() {
+                const voteButtons = document.querySelectorAll('.vote-btn');
+                voteButtons.forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const voteId = btn.dataset.voteId;
+                        const votoValue = btn.dataset.vote === 'true';
+                        try {
+                            await db.ref(`gincanas/${gincanaId}/metadata/votacaoAtiva/${voteId}/votos/${currentUser}`).set(votoValue);
+                            btn.disabled = true;
+                            btn.style.opacity = '0.6';
+                            btn.textContent = votoValue ? '✓ Votado' : '✗ Votado';
+                        } catch (error) {
+                            console.error('Erro ao votar:', error);
+                            alert('Erro ao registrar seu voto.');
+                        }
+                    });
+                });
+            }
+
+            function checkVotingCompletion() {
+                const votacaoAtiva = cycleData?.metadata?.votacaoAtiva;
+                if (!votacaoAtiva) return;
+                Object.entries(votacaoAtiva).forEach(async ([voteId, vote]) => {
+                    if (vote.status !== 'aberta') return;
+                    const totalUsers = Object.keys(userData || {}).length;
+                    const votos = vote.votos || {};
+                    const votosPositivos = Object.values(votos).filter(v => v === true).length;
+                    const agora = new Date();
+                    const tempoDecorrido = agora - new Date(vote.timestampInicio);
+                    const timeout72h = 72 * 60 * 60 * 1000;
+                    const todos100porcento = votosPositivos === totalUsers;
+                    const timeoutAlcancado = tempoDecorrido >= timeout72h;
+                    if (todos100porcento || timeoutAlcancado) {
+                        await encerrarCiclo(voteId, todos100porcento, timeoutAlcancado);
+                    }
+                });
+            }
+
+            async function encerrarCiclo(voteId, porConcordancia, porTimeout) {
+                try {
+                    const cicloAtual = cycleData?.metadata?.cicloAtual || 1;
+                    const proximoCiclo = cicloAtual + 1;
+                    await db.ref(`gincanas/${gincanaId}/metadata/votacaoAtiva/${voteId}`).update({
+                        status: 'encerrada',
+                        timestampEncerramento: new Date().toISOString()
+                    });
+                    await db.ref(`gincanas/${gincanaId}/metadata`).update({
+                        statusCicloAnterior: 'encerrado',
+                        dataEncerramentoCicloAnterior: new Date().toISOString(),
+                        motivoEncerramento: porConcordancia ? '100% de concordância' : 'Timeout 72h',
+                        cicloAtual: proximoCiclo
+                    });
+                    showNewCycleModal(proximoCiclo);
+                } catch (error) {
+                    console.error('Erro ao encerrar ciclo:', error);
+                    alert('Erro ao encerrar o ciclo.');
+                }
+            }
+
+            function showNewCycleModal(proximoCiclo) {
+                document.getElementById('previousCycleNum').textContent = proximoCiclo - 1;
+                document.getElementById('nextCycleNum').textContent = proximoCiclo;
+                document.getElementById('newCycleModal').classList.add('active');
+            }
+
+            document.getElementById('confirmNewCycleBtn').addEventListener('click', async () => {
+                try {
+                    const proximoCiclo = cycleData?.metadata?.cicloAtual || 2;
+                    await db.ref(`gincanas/${gincanaId}/metadata`).update({
+                        statusCicloAnterior: null,
+                        votacaoAtiva: null
+                    });
+                    document.getElementById('newCycleModal').classList.remove('active');
+                    alert(`🚀 Ciclo ${proximoCiclo} iniciado! Boa sorte a todos!`);
+                } catch (error) {
+                    console.error('Erro ao iniciar novo ciclo:', error);
+                }
+            });
+
+            document.getElementById('cancelNewCycleBtn').addEventListener('click', () => {
+                document.getElementById('newCycleModal').classList.remove('active');
+            });
+
+            document.getElementById('closeNewCycleModal').addEventListener('click', () => {
+                document.getElementById('newCycleModal').classList.remove('active');
+            });
+
+            // EXPORTAR CSV
+            function exportToCSV(format) {
+                if (!activitiesData || Object.keys(activitiesData).length === 0) {
+                    alert('Nenhum dado para exportar.');
+                    return;
+                }
+                if (format === 'detailed' || format === 'both') exportDetailed();
+                if (format === 'summary' || format === 'both') exportSummary();
+            }
+
+            function exportDetailed() {
+                const headers = ['Data', 'Usuário', 'Categoria', 'Título', 'Descrição', 'Valor', 'Avaliação', 'Pontos', 'Foto URL', 'Ciclo'];
+                const rows = [];
+                Object.entries(activitiesData || {}).forEach(([id, activity]) => {
+                    const user = userData[activity.usuarioId];
+                    const points = calculateScore(activity);
+                    const avaliacaoStr = activity.avaliacao ? '⭐'.repeat(activity.avaliacao) : '';
+                    const date = new Date(activity.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    rows.push([date, user?.nome || 'Desconhecido', activity.categoria, activity.titulo, activity.descricao || '', activity.valor || '', avaliacaoStr, points, activity.fotoUrl || '', `Ciclo ${activity.ciclo || 1}`]);
+                });
+                downloadCSV(headers, rows, `ObservaStats_Detalhado_${new Date().toISOString().split('T')[0]}.csv`);
+            }
+
+            function exportSummary() {
+                const categorias = ['Atividade Física', 'Leitura', 'Estudo', 'Sexo', 'Filme', 'Série', 'Video Game'];
+                const headers = ['Usuário', ...categorias, 'Total', 'Ciclo'];
+                const rows = [];
+                Object.entries(userData || {}).forEach(([codigo, user]) => {
+                    const row = [user.nome];
+                    let total = 0;
+                    categorias.forEach(cat => {
+                        let categoryScore = 0;
+                        Object.values(activitiesData || {}).forEach(activity => {
+                            if (activity.usuarioId === codigo && activity.categoria === cat) {
+                                const score = calculateScore(activity);
+                                categoryScore += score;
+                                total += score;
+                            }
+                        });
+                        row.push(categoryScore);
+                    });
+                    row.push(total);
+                    row.push(`Ciclo ${cycleData?.metadata?.cicloAtual || 1}`);
+                    rows.push(row);
+                });
+                downloadCSV(headers, rows, `ObservaStats_Resumo_${new Date().toISOString().split('T')[0]}.csv`);
+            }
+
+            function downloadCSV(headers, rows, filename) {
+                const csvContent = [headers.map(h => `"${h}"`).join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                link.click();
+            }
+
+            document.getElementById('exportDetailedBtn').addEventListener('click', () => {
+                exportToCSV('detailed');
+                document.getElementById('exportModal').classList.remove('active');
+            });
+
+            document.getElementById('exportSummaryBtn').addEventListener('click', () => {
+                exportToCSV('summary');
+                document.getElementById('exportModal').classList.remove('active');
+            });
+
+            document.getElementById('exportBothBtn').addEventListener('click', () => {
+                exportToCSV('both');
+                document.getElementById('exportModal').classList.remove('active');
+            });
+
+            document.getElementById('closeExportModal').addEventListener('click', () => {
+                document.getElementById('exportModal').classList.remove('active');
+            });
+
+            document.getElementById('cancelExportBtn').addEventListener('click', () => {
+                document.getElementById('exportModal').classList.remove('active');
+            });
+
+            function addExportButton() {
+                const dashboardTab = document.getElementById('dashboardTab');
+                if (!dashboardTab.querySelector('#exportDataBtn')) {
+                    const btn = document.createElement('button');
+                    btn.id = 'exportDataBtn';
+                    btn.className = 'btn btn-secondary';
+                    btn.textContent = '📥 Exportar Dados';
+                    btn.style.marginTop = '12px';
+                    btn.addEventListener('click', () => {
+                        document.getElementById('exportModal').classList.add('active');
+                    });
+                    const suggestBtn = document.getElementById('suggestEndBtn');
+                    suggestBtn.parentNode.insertBefore(btn, suggestBtn.nextSibling);
+                }
+            }
+
+            // EDITAR NOME
+            document.getElementById('editNameForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const novoNome = document.getElementById('editNameInput').value.trim();
+                if (!novoNome) {
+                    alert('Digite um nome válido.');
+                    return;
+                }
+                try {
+                    await db.ref(`gincanas/${gincanaId}/usuarios/${currentUser}`).update({
+                        nome: novoNome,
+                        nomeEditado: true
+                    });
+                    document.getElementById('editNameModal').classList.remove('active');
+                    updateUI();
+                } catch (error) {
+                    console.error('Erro ao atualizar nome:', error);
+                    alert('Erro ao atualizar nome.');
+                }
+            });
+
+            document.getElementById('userBadge').addEventListener('click', () => {
+                const user = userData[currentUser];
+                if (user && (user.nome === INITIAL_CODES[currentUser] || !user.nomeEditado)) {
+                    document.getElementById('editNameInput').value = user.nome;
+                    document.getElementById('editNameModal').classList.add('active');
+                } else {
+                    alert('Apenas novos usuários podem editar o nome.');
+                }
+            });
+
+            document.getElementById('closeEditNameModal').addEventListener('click', () => {
+                document.getElementById('editNameModal').classList.remove('active');
+            });
+
+            document.getElementById('cancelEditNameBtn').addEventListener('click', () => {
+                document.getElementById('editNameModal').classList.remove('active');
+            });
+
+            
+
         // ===== INITIALIZE =====
         document.getElementById('codeInput').focus();
     </script>
+
+    <!-- ========== MODAIS ADICIONAIS - TODAS AS FASES ========== -->
+
+    <!-- EXPORTAR CSV MODAL -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">📊 Exportar Dados do Ciclo</h2>
+                <button class="modal-close" id="closeExportModal">×</button>
+            </div>
+            <div style="padding: 16px;">
+                <p style="margin-bottom: 16px; color: var(--text-light); font-size: 14px;">Selecione o formato de exportação:</p>
+                <button class="btn btn-primary" id="exportDetailedBtn" style="margin-bottom: 12px; width: 100%;">
+                    📋 Atividades Detalhadas (CSV)
+                </button>
+                <button class="btn btn-secondary" id="exportSummaryBtn" style="margin-bottom: 12px; width: 100%;">
+                    📈 Resumo por Usuário (CSV)
+                </button>
+                <button class="btn btn-accent" id="exportBothBtn" style="width: 100%;">
+                    🔄 Ambos os Formatos
+                </button>
+                <button class="btn btn-outline" id="cancelExportBtn" style="margin-top: 16px; width: 100%;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOVO CICLO MODAL -->
+    <div id="newCycleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Iniciar Novo Ciclo</h2>
+                <button class="modal-close" id="closeNewCycleModal">×</button>
+            </div>
+            <div style="padding: 16px;">
+                <div class="notification" style="margin-bottom: 20px; background: #E8F5E9;">
+                    <div class="notification-icon">✅</div>
+                    <div class="notification-content">
+                        <div class="notification-title">Ciclo Anterior Encerrado</div>
+                        <div class="notification-text">O ciclo <strong id="previousCycleNum">1</strong> foi concluído.</div>
+                    </div>
+                </div>
+                <p style="color: var(--text-light); margin-bottom: 20px; font-size: 14px;">
+                    Os dados do ciclo anterior foram preservados no histórico. Um novo ciclo começará com os mesmos usuários.
+                </p>
+                <button class="btn btn-primary" id="confirmNewCycleBtn" style="width: 100%;">
+                    🚀 Iniciar Ciclo <span id="nextCycleNum">2</span>
+                </button>
+                <button class="btn btn-outline" id="cancelNewCycleBtn" style="margin-top: 12px; width: 100%;">
+                    👁️ Visualizar Dados Anteriores
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDITAR NOME MODAL -->
+    <div id="editNameModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Definir Seu Nome</h2>
+                <button class="modal-close" id="closeEditNameModal">×</button>
+            </div>
+            <form id="editNameForm">
+                <div style="padding: 16px;">
+                    <div class="form-group">
+                        <label class="form-label">Nome <span class="required">*</span></label>
+                        <input type="text" id="editNameInput" class="form-input" placeholder="Ex: Beatriz" required maxlength="30" />
+                        <p style="font-size: 12px; color: var(--text-light); margin-top: 8px;">
+                            💡 Apenas novos usuários podem editar o nome
+                        </p>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Confirmar</button>
+                        <button type="button" class="btn btn-outline" id="cancelEditNameBtn">Cancelar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </body>
 </html>
